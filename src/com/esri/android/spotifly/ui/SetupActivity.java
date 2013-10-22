@@ -37,6 +37,7 @@ public class SetupActivity extends FragmentActivity {
     private EditText mFlightNumber;
     private Spinner mCarrierName;
     private TextView mDatePicker;
+    private boolean mGotDate = false;
 
     private int day = -1;
     private int month = -1;
@@ -55,11 +56,6 @@ public class SetupActivity extends FragmentActivity {
         mFlightNumber = (EditText) findViewById(R.id.flight_number);
         mCarrierName = (Spinner) findViewById(R.id.airline_carrier);
         mDatePicker = (TextView) findViewById(R.id.flight_date);
-
-        int[] dateFields = SpotiflyUtils.getFlightDate(this);
-        if (dateFields != null) {
-            setUpDateView(dateFields[0], dateFields[1], dateFields[2]);
-        }
 
         String carrierName = SpotiflyUtils.getCarrierName(this);
         if (mCarrierName != null) {
@@ -82,6 +78,23 @@ public class SetupActivity extends FragmentActivity {
         }
 
         if (mDatePicker != null) {
+            int[] dateFields = SpotiflyUtils.getFlightDate(this);
+            if (dateFields != null) {
+                mGotDate = true;
+                year = dateFields[2];
+                month = dateFields[1];
+                day = dateFields[0];
+            } else {
+                mGotDate = false;
+                // Use the current date as the default date in the picker
+                final Calendar c = Calendar.getInstance();
+                year = c.get(Calendar.YEAR);
+                month = c.get(Calendar.MONTH);
+                day = c.get(Calendar.DAY_OF_MONTH);
+            }
+
+            setUpDateView(day, month, year);
+
             mDatePicker.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -190,9 +203,6 @@ public class SetupActivity extends FragmentActivity {
     private void setUpDateView(int day, int month, int year) {
         Log.d(TAG, "set up date: " + month + "/" + day + "/" + year);
         if (mDatePicker != null) {
-            SetupActivity.this.day = day;
-            SetupActivity.this.month = month;
-            SetupActivity.this.year = year;
             String longMonth = Calendar.getInstance().getDisplayName(Calendar.MONTH, Calendar.LONG, Locale.US);
             mDatePicker.setText(String.format("%s, %d %d", longMonth, day, year));
             mDatePicker.setTextColor(R.color.black);
@@ -209,17 +219,32 @@ public class SetupActivity extends FragmentActivity {
             implements DatePickerDialog.OnDateSetListener {
         @Override
         public Dialog onCreateDialog(Bundle savedInstanceState) {
-            // Use the current date as the default date in the picker
-            final Calendar c = Calendar.getInstance();
-            int year = c.get(Calendar.YEAR);
-            int month = c.get(Calendar.MONTH);
-            int day = c.get(Calendar.DAY_OF_MONTH);
+            int year;
+            int month;
+            int day;
+            if (mGotDate) {
+                year = SetupActivity.this.year;
+                month = SetupActivity.this.month;
+                day = SetupActivity.this.day;
+            } else {
+                // Use the current date as the default date in the picker
+                final Calendar c = Calendar.getInstance();
+                year = c.get(Calendar.YEAR);
+                month = c.get(Calendar.MONTH);
+                day = c.get(Calendar.DAY_OF_MONTH);
+            }
+
             // Create a new instance of DatePickerDialog and return it
             return new DatePickerDialog(getActivity(), this, year, month, day);
         }
 
         @Override
         public void onDateSet(DatePicker view, int year, int month, int day) {
+            SpotiflyUtils.setFlightDate(SetupActivity.this, day, month, year);
+            SetupActivity.this.day = day;
+            SetupActivity.this.month = month;
+            SetupActivity.this.year = year;
+            mGotDate = true;
             setUpDateView(day, month, year);
         }
     }
