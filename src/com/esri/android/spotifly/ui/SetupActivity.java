@@ -2,6 +2,7 @@ package com.esri.android.spotifly.ui;
 
 import android.app.DatePickerDialog;
 import android.app.Dialog;
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
@@ -38,6 +39,7 @@ public class SetupActivity extends FragmentActivity {
     private Spinner mCarrierName;
     private TextView mDatePicker;
     private boolean mGotDate = false;
+    private ProgressDialog mProgress;
 
     private int day = -1;
     private int month = -1;
@@ -113,6 +115,14 @@ public class SetupActivity extends FragmentActivity {
                     String airlineCode = null;
                     String flightNum = null;
 
+                    if (mProgress == null) {
+                        mProgress = new ProgressDialog(SetupActivity.this);
+                        mProgress.setTitle("Progress");
+                        mProgress.setMessage("Looking up flight...");
+                        mProgress.setCanceledOnTouchOutside(false);
+                    }
+                    mProgress.show();
+
                     if (mFlightNumber != null) {
                         String pattern = "^[a-zA-Z0-9_]*$";
                         final Editable text = mFlightNumber.getText();
@@ -155,6 +165,12 @@ public class SetupActivity extends FragmentActivity {
                         params.put("utc", "false");
                         String finalUrl = FLIGHT_STATUS_URL + urlTail;
                         NetUtils.getJson(SetupActivity.this, finalUrl, params, null, new NetUtils.JsonRequestListener() {
+                            private void cancelDialog() {
+                                if (mProgress != null && mProgress.isShowing()) {
+                                    mProgress.cancel();
+                                }
+                            }
+
                             @Override
                             public void onSuccess(JSONObject json) {
                                 if (json != null) {
@@ -170,6 +186,8 @@ public class SetupActivity extends FragmentActivity {
                                                 SpotiflyUtils.setFlightId(SetupActivity.this, flightId);
                                                 Intent intent = new Intent(SetupActivity.this, MapActivity.class);
                                                 startActivity(intent);
+
+                                                cancelDialog();
                                                 return;
                                             }
                                         }
@@ -177,17 +195,22 @@ public class SetupActivity extends FragmentActivity {
                                 }
 
                                 Log.w(TAG, "Could not get flight ID from status request.");
+                                cancelDialog();
                                 setupToast("No matching flight found!");
                             }
 
                             @Override
                             public void onError(JSONObject json, StatusLine status) {
                                 Log.w(TAG, "Error getting flight status: " + status.getReasonPhrase());
+                                setupToast("Error while looking up flight, please try again.");
+                                cancelDialog();
                             }
 
                             @Override
                             public void onFailure(Throwable error) {
                                 Log.w(TAG, "Error getting flight status: ", error);
+                                setupToast("Error while looking up flight, please try again.");
+                                cancelDialog();
                             }
                         });
                     } else {
