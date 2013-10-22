@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:orientation="vertical"
+              android:layout_width="fill_parent"
+              android:layout_height="fill_parent"
+              android:paddingLeft="15%"
+              android:paddingRight="15%"
+        >
+
+    <TextView
+            style="@style/h1_main"
+            android:text="Spotifly"
+            />
+
+    <TextView
+            style="@style/h2_main"
+            android:text="Flight #"
+            />
+
+    <EditText
+            style="@style/input_field"
+            android:id="@+id/flight_number"
+            />
+    <TextView
+            style="@style/h2_main"
+            android:text="Date"
+            />
+    <EditText
+            style="@style/input_field"
+            android:id="@+id/flight_date"
+            />
+
+
+    <TextView
+            style="@style/h2_main"
+            android:text="Airline"
+            />
+    <EditText
+            style="@style/input_field"
+            android:id="@+id/airline_carrier"
+            />
+
+    <Button
+            style="@style/button_style"
+            android:text="Radical Cool Times With Jay Dilla"
+            android:id="@+id/button" android:layout_gravity="center"/>
+</LinearLayout>

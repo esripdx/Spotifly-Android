@@ -44,7 +44,7 @@ import com.esri.core.symbol.SimpleMarkerSymbol;
 import com.esri.core.tasks.ags.query.Query;
 import com.esri.core.tasks.ags.query.QueryTask;
 
-public class MainActivity extends Activity {
+public class MapActivity extends Activity {
 
 	MapView map;
 
@@ -322,7 +322,7 @@ public class MainActivity extends Activity {
 
 		@Override
 		protected void onPreExecute() {
-			progress = ProgressDialog.show(MainActivity.this, "",
+			progress = ProgressDialog.show(MapActivity.this, "",
 					"Please wait....query task is executing");
 		}
 
@@ -335,6 +335,7 @@ public class MainActivity extends Activity {
 			Query query = new Query();
 			query.setWhere(whereClause);
 			query.setReturnGeometry(true);
+            query.setGeometry(new Envelope());
 
 			// Define the new instance of QueryTask
 			QueryTask qTask = new QueryTask(featureServiceURL);
