@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="carriers_array">
+        <item>American Airlines - AA</item>
+        <item>Alaskan Air - AS</item>
+        <item>JetBlue Airways - B6</item>
+        <item>Delta Airlines - DL</item>
+        <item>United Airlines - UA</item>
+        <item>US Airways - US</item>
+        <item>Virgin America - VX</item>
+        <item>Southwest Airlines - WN</item>
+    </string-array>
+</resources>
