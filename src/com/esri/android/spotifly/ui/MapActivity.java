@@ -109,61 +109,6 @@ public class MapActivity extends Activity {
 				R.layout.identify_callout_content, null);
 		m_callout.setContent(calloutContent);
 
-		// Create a spinner with the drop down values specified in
-		// values->queryparameters.xml
-		Spinner queryParameters = (Spinner) this.findViewById(R.id.spinner1);
-		ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
-				this, R.array.QueryParameters,
-				android.R.layout.simple_spinner_item);
-		adapter.setDropDownViewResource(android.R.layout.simple_spinner_item);
-		queryParameters.setAdapter(adapter);
-
-		// Perform action when an item is selected from the Spinner
-		queryParameters.setOnItemSelectedListener(new OnItemSelectedListener() {
-			@Override
-			public void onItemSelected(AdapterView<?> parent, View view,
-					int pos, long id) {
-
-				switch (pos) {
-
-				// Query Parameters
-				case 0:
-					map.setExtent(initExtent);
-					graphicsLayer.removeAll();
-					break;
-				// COUNTRY ='US'
-				case 1:
-					new RunQueryFeatureLayerTask().execute("US");
-					break;
-				// COUNTRY ='Canada'
-				case 2:
-					new RunQueryFeatureLayerTask().execute("Canada");
-					break;
-				// COUNTRY ='France'
-				case 3:
-					new RunQueryFeatureLayerTask().execute("France");
-					break;
-				// COUNTRY ='Australia'
-				case 4:
-					new RunQueryFeatureLayerTask().execute("Australia");
-					break;
-				// COUNTRY ='Brazil'
-				case 5:
-					new RunQueryFeatureLayerTask().execute("Brazil");
-					break;
-
-				default:
-					break;
-				}
-
-			}
-
-			@Override
-			public void onNothingSelected(AdapterView<?> parent) {
-				// Do nothing
-			}
-		});
-
 		map.setOnStatusChangedListener(new OnStatusChangedListener() {
 
 			private static final long serialVersionUID = 1L;

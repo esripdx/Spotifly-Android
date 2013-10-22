@@ -9,7 +9,7 @@
         <item name="android:layout_width">fill_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:textSize">32dp</item>
-        <item name="android:padding">12</item>
+        <item name="android:padding">12dp</item>
         <item name="android:gravity">center</item>
     </style>
 
@@ -17,7 +17,7 @@
         <item name="android:layout_width">fill_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:textSize">18dp</item>
-        <item name="android:padding">7</item>
+        <item name="android:padding">7dp</item>
         <item name="android:gravity">center</item>
     </style>
 

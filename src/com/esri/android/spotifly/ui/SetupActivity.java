@@ -45,22 +45,16 @@ public class SetupActivity extends FragmentActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.setup);
     }
 
     @Override
     public void onStart() {
+        super.onStart();
         mGoButton = (Button) findViewById(R.id.go_button);
         mFlightNumber = (EditText) findViewById(R.id.flight_number);
         mCarrierName = (Spinner) findViewById(R.id.airline_carrier);
         mDatePicker = (TextView) findViewById(R.id.flight_date);
-
-        // Create an ArrayAdapter using the string array and a default spinner layout
-        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
-                R.array.carriers_array, android.R.layout.simple_spinner_item);
-        // Specify the layout to use when the list of choices appears
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        // Apply the adapter to the spinner
-        mCarrierName.setAdapter(adapter);
 
         int[] dateFields = SpotiflyUtils.getFlightDate(this);
         if (dateFields != null) {
@@ -68,8 +62,18 @@ public class SetupActivity extends FragmentActivity {
         }
 
         String carrierName = SpotiflyUtils.getCarrierName(this);
-        if (!TextUtils.isEmpty(carrierName) && mCarrierName != null) {
-            mCarrierName.setSelection(adapter.getPosition(carrierName));
+        if (mCarrierName != null) {
+            // Create an ArrayAdapter using the string array and a default spinner layout
+            ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
+                    R.array.carriers_array, android.R.layout.simple_spinner_item);
+            // Specify the layout to use when the list of choices appears
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            // Apply the adapter to the spinner
+            mCarrierName.setAdapter(adapter);
+
+            if (!TextUtils.isEmpty(carrierName)) {
+                mCarrierName.setSelection(adapter.getPosition(carrierName));
+            }
         }
 
         String flightNumber = SpotiflyUtils.getFlightNumber(this);
@@ -117,7 +121,7 @@ public class SetupActivity extends FragmentActivity {
                         String text = (String) mCarrierName.getSelectedItem();
 
                         if (text != null && !TextUtils.isEmpty(text)) {
-                            airlineCode = text.split(" - ")[2];
+                            airlineCode = text.split(" - ")[1];
                             SpotiflyUtils.setCarrierName(SetupActivity.this, text);
                         } else {
                             Log.w(TAG, "Bad carrier name encountered");
@@ -130,7 +134,7 @@ public class SetupActivity extends FragmentActivity {
                     }
 
                     if (day > 0 && month > 0 && year > 0 && !TextUtils.isEmpty(airlineCode) && !TextUtils.isEmpty(flightNum)) {
-                        String urlTail = String.format("%s/%s/dep/%d/%d/%d", airlineCode, flightNum, year, month, day);
+                        String urlTail = String.format("%s/%s/dep/%d/%d/%d", airlineCode, flightNum, year, month + 1, day);
 
                         HashMap<String, String> params = new HashMap<String, String>();
                         params.put("appId", getString(R.string.flight_stats_app_id));
@@ -174,7 +178,7 @@ public class SetupActivity extends FragmentActivity {
                             }
                         });
                     } else {
-                        Log.w(TAG, String.format("Could not get flight date, date was invalid: %d/%d/%d", month, day, year));
+                        Log.w(TAG, String.format("Could not get flight date, date was invalid: %d/%d/%d", month + 1, day, year));
                     }
                 }
             });
@@ -184,6 +188,7 @@ public class SetupActivity extends FragmentActivity {
     }
 
     private void setUpDateView(int day, int month, int year) {
+        Log.d(TAG, "set up date: " + month + "/" + day + "/" + year);
         if (mDatePicker != null) {
             SetupActivity.this.day = day;
             SetupActivity.this.month = month;

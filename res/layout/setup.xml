@@ -3,8 +3,8 @@
               android:orientation="vertical"
               android:layout_width="fill_parent"
               android:layout_height="fill_parent"
-              android:paddingLeft="15%"
-              android:paddingRight="15%">
+              android:paddingLeft="25dp"
+              android:paddingRight="25dp">
 
     <TextView
             style="@style/h1_main"
@@ -24,7 +24,7 @@
     <TextView
             style="@style/input_field"
             android:id="@+id/flight_date"
-            android:padding="10"
+            android:padding="10dp"
             android:textSize="18sp"
             android:hint="Enter a date..."
             android:background="@color/white"/>
