@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <calloutViewStyle
+        style="app:@style/darrkgray_layout"
+        anchor="9dip"
+        backgroundColor="#7F0A0A0A"
+        cornerCurve="15dip"
+        flat="true"
+        frameColor="#FFC7C7C7"
+        maxWidth="400dip" />
+
+</resources>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string-array name="QueryParameters">
+        <item>Query Parameters</item>
+        <item>COUNTRY=\'US\'</item>
+        <item>COUNTRY=\'CANADA\'</item>
+        <item>COUNTRY=\'FRANCE\'</item>
+        <item>COUNTRY=\'AUSTRALIA\'</item>
+        <item>COUNTRY=\'BRAZIL\'</item>
+    </string-array>
+
+</resources>
