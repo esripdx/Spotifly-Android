@@ -20,19 +20,12 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 import com.esri.android.spotifly.R;
-import com.esri.android.spotifly.util.NetUtils;
 import com.esri.android.spotifly.util.SpotiflyUtils;
-import org.apache.http.StatusLine;
-import org.json.JSONArray;
-import org.json.JSONObject;
-
 import java.util.Calendar;
-import java.util.HashMap;
 import java.util.Locale;
 
 public class SetupActivity extends FragmentActivity {
     private static final String TAG = "SetupActivity";
-    private static final String FLIGHT_STATUS_URL = "https://api.flightstats.com/flex/flightstatus/rest/v2/json/flight/status/";
 
     private EditText mFlightNumber;
     private Spinner mCarrierName;
@@ -111,7 +104,7 @@ public class SetupActivity extends FragmentActivity {
             goButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    String airlineCode = null;
+                    String carrierName = null;
                     String flightNum = null;
 
                     if (mProgress == null) {
@@ -140,11 +133,10 @@ public class SetupActivity extends FragmentActivity {
                     }
 
                     if (mCarrierName != null) {
-                        String text = (String) mCarrierName.getSelectedItem();
+                        carrierName = (String) mCarrierName.getSelectedItem();
 
-                        if (text != null && !TextUtils.isEmpty(text)) {
-                            airlineCode = text.split(" - ")[1];
-                            SpotiflyUtils.setCarrierName(SetupActivity.this, text);
+                        if (carrierName != null && !TextUtils.isEmpty(carrierName)) {
+                            SpotiflyUtils.setCarrierName(SetupActivity.this, carrierName);
                         } else {
                             Log.w(TAG, "Bad carrier name encountered");
                             mCarrierName.requestFocus();
@@ -155,65 +147,15 @@ public class SetupActivity extends FragmentActivity {
                         Log.w(TAG, "Could not get carrier name, view was null.");
                     }
 
-                    if (day > 0 && month > 0 && year > 0 && !TextUtils.isEmpty(airlineCode) && !TextUtils.isEmpty(flightNum)) {
-                        String urlTail = String.format("%s/%s/dep/%d/%d/%d", airlineCode, flightNum, year, month + 1, day);
-
-                        HashMap<String, String> params = new HashMap<String, String>();
-                        params.put("appId", getString(R.string.flight_stats_app_id));
-                        params.put("appKey", getString(R.string.flight_stats_app_key));
-                        params.put("utc", "false");
-                        String finalUrl = FLIGHT_STATUS_URL + urlTail;
-                        NetUtils.getJson(SetupActivity.this, finalUrl, params, null, new NetUtils.JsonRequestListener() {
-                            private void cancelDialog() {
-                                if (mProgress != null && mProgress.isShowing()) {
-                                    mProgress.cancel();
-                                }
-                            }
-
-                            @Override
-                            public void onSuccess(JSONObject json) {
-                                if (json != null) {
-                                    JSONArray flightStatuses = json.optJSONArray("flightStatuses");
-
-                                    if (flightStatuses != null && flightStatuses.length() > 0) {
-                                        JSONObject flightStatus = flightStatuses.optJSONObject(0);
-
-                                        if (flightStatus != null) {
-                                            int flightId = flightStatus.optInt("flightId");
-
-                                            if (flightId != 0) {
-                                                SpotiflyUtils.setFlightId(SetupActivity.this, flightId);
-                                                Intent intent = new Intent(SetupActivity.this, MapActivity.class);
-                                                startActivity(intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
-
-                                                cancelDialog();
-                                                return;
-                                            }
-                                        }
-                                    }
-                                }
-
-                                Log.w(TAG, "Could not get flight ID from status request.");
-                                cancelDialog();
-                                setupToast("No matching flight found!");
-                            }
-
-                            @Override
-                            public void onError(JSONObject json, StatusLine status) {
-                                Log.w(TAG, "Error getting flight status: " + status.getReasonPhrase());
-                                setupToast("Error while looking up flight, please try again.");
-                                cancelDialog();
-                            }
-
-                            @Override
-                            public void onFailure(Throwable error) {
-                                Log.w(TAG, "Error getting flight status: ", error);
-                                setupToast("Error while looking up flight, please try again.");
-                                cancelDialog();
-                            }
-                        });
+                    if (day > 0 && month > 0 && year > 0 && !TextUtils.isEmpty(carrierName) && !TextUtils.isEmpty(flightNum)) {
+                        Intent intent = new Intent(SetupActivity.this, MapActivity.class);
+                        startActivity(intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
                     } else {
                         Log.w(TAG, String.format("Could not get flight date, date was invalid: %d/%d/%d", month + 1, day, year));
+                    }
+
+                    if (mProgress != null && mProgress.isShowing()) {
+                        mProgress.cancel();
                     }
                 }
             });

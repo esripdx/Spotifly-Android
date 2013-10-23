@@ -1,7 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Spotifly-Android</string>
-    <string name="flight_stats_app_id">52f9d24d</string>
-    <string name="flight_stats_app_key">26f05dd250d70da50a0742a3f3f86cd1</string>
-    <string name="spinTitle">Query Customer Data:</string>
 </resources>

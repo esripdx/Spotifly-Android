@@ -4,11 +4,14 @@ import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.Toast;
 import com.esri.android.map.Callout;
 import com.esri.android.map.FeatureLayer;
 import com.esri.android.map.GraphicsLayer;
@@ -19,6 +22,9 @@ import com.esri.android.map.ags.ArcGISTiledMapServiceLayer;
 import com.esri.android.map.event.OnSingleTapListener;
 import com.esri.android.map.event.OnStatusChangedListener;
 import com.esri.android.spotifly.R;
+import com.esri.android.spotifly.util.Constants;
+import com.esri.android.spotifly.util.NetUtils;
+import com.esri.android.spotifly.util.SpotiflyUtils;
 import com.esri.core.ags.FeatureServiceInfo;
 import com.esri.core.gdb.GdbFeatureTable;
 import com.esri.core.gdb.Geodatabase;
@@ -31,16 +37,30 @@ import com.esri.core.tasks.gdb.GeodatabaseStatusCallback;
 import com.esri.core.tasks.gdb.GeodatabaseStatusInfo;
 import com.esri.core.tasks.gdb.GeodatabaseTask;
 import com.esri.core.tasks.gdb.SyncModel;
+import org.apache.http.StatusLine;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 
 public class MapActivity extends Activity {
     private static final String TAG = "MapActivity";
     private static final String TILE_SERVICE_URL = "http://services.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer";
     private static final String FEATURE_SERVICE_URL = "http://services.arcgis.com/rOo16HdIMeOBI4Mb/arcgis/rest/services/Spotifly/FeatureServer/0";
+    private static final String FLIGHT_STATUS_URL = "https://api.flightstats.com/flex/flightstatus/rest/v2/json/flight/status/";
 
     private MapView mMapView;
     private Button mSetupButton;
     private ArcGISFeatureLayer featureLayer;
     private ArcGISTiledMapServiceLayer tileLayer;
+    private ProgressDialog mProgress;
+    private ArrayList<Point> mPortPoints = new ArrayList<Point>();
+    private int mFlightDurationMinutes;
+    private Date mDepartureDate;
+    private Date mArrivalDate;
 
     private GraphicsLayer graphicsLayer;
     private ProgressDialog progress;
@@ -67,6 +87,159 @@ public class MapActivity extends Activity {
     @Override
     public void onStart() {
         super.onStart();
+
+        if (mProgress == null) {
+            mProgress = new ProgressDialog(this);
+            mProgress.setTitle("Progress");
+            mProgress.setMessage("Looking up flight...");
+            mProgress.setCanceledOnTouchOutside(false);
+        }
+        mProgress.show();
+
+        String carrierName = SpotiflyUtils.getCarrierName(this);
+        String flightNumber = SpotiflyUtils.getFlightNumber(this);
+        int[] dateFields = SpotiflyUtils.getFlightDate(this);
+        int year = -1;
+        int month = -1;
+        int day = -1;
+        if (dateFields != null) {
+            year = dateFields[2];
+            month = dateFields[1];
+            day = dateFields[0];
+        }
+        String airlineCode = carrierName.split(" - ")[1];
+
+        String urlTail = String.format("%s/%s/dep/%d/%d/%d", airlineCode, flightNumber, year, month + 1, day);
+
+        HashMap<String, String> params = new HashMap<String, String>();
+        params.put("appId", Constants.FLIGHT_STATS_APP_ID);
+        params.put("appKey", Constants.FLIGHT_STATS_APP_KEY);
+        params.put("utc", "false");
+        String finalUrl = FLIGHT_STATUS_URL + urlTail;
+        NetUtils.getJson(this, finalUrl, params, null, new NetUtils.JsonRequestListener() {
+            @Override
+            public void onSuccess(JSONObject json) {
+                if (json != null) {
+                    JSONArray flightStatuses = json.optJSONArray("flightStatuses");
+                    JSONObject appendix = json.optJSONObject("appendix");
+
+                    if (appendix != null) {
+                        JSONArray airports = appendix.optJSONArray("airports");
+
+                        if (airports != null && airports.length() > 0) {
+                            for (int i = 0; i < airports.length(); i++) {
+                                JSONObject port = airports.optJSONObject(i);
+
+                                if (port != null) {
+                                    double latitude = port.optDouble("latitude");
+                                    double longitude = port.optDouble("longitude");
+                                    mPortPoints.add(new Point(longitude, latitude));
+                                }
+                            }
+                        } else {
+                            Log.d(TAG, "No airports returned.");
+                        }
+                    } else {
+                        Log.d(TAG, "Appendix was null.");
+                    }
+
+                    if (flightStatuses != null && flightStatuses.length() > 0) {
+                        JSONObject flightStatus = flightStatuses.optJSONObject(0);
+
+                        if (flightStatus != null) {
+                            int flightId = flightStatus.optInt("flightId");
+                            JSONObject departureDate = flightStatus.optJSONObject("departureDate");
+                            JSONObject arrivalDate = flightStatus.optJSONObject("arrivalDate");
+                            JSONObject flightDurations = flightStatus.optJSONObject("flightDurations");
+
+                            if (flightId != 0) {
+                                SpotiflyUtils.setFlightId(MapActivity.this, flightId);
+                            } else {
+                                Log.d(TAG, "No flight ID.");
+                            }
+
+                            if (departureDate != null) {
+                                String depDate = departureDate.optString("dateUtc");
+
+                                if (!TextUtils.isEmpty(depDate)) {
+                                    Log.d(TAG, depDate);
+                                    String s = depDate.replace("Z", "+00:00");
+                                    try {
+                                        s = s.substring(0, 22) + s.substring(23);
+                                        mDepartureDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSZ").parse(s);
+                                    } catch (Exception e) {
+                                        Log.w(TAG, "Error unpacking departure date. ", e);
+                                    }
+                                } else {
+                                    Log.d(TAG, "No departure date string.");
+                                }
+                            } else {
+                                Log.d(TAG, "No departure date object.");
+                            }
+
+                            if (arrivalDate != null) {
+                                String arrDate = departureDate.optString("dateUtc");
+
+                                if (!TextUtils.isEmpty(arrDate)) {
+                                    Log.d(TAG, arrDate);
+                                    String s = arrDate.replace("Z", "+00:00");
+                                    try {
+                                        s = s.substring(0, 22) + s.substring(23);
+                                        mArrivalDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSZ").parse(s);
+                                    } catch (Exception e) {
+                                        Log.w(TAG, "Error unpacking arrival date. ", e);
+                                    }
+                                } else {
+                                    Log.d(TAG, "No arrival date string.");
+                                }
+                            } else {
+                                Log.d(TAG, "No arrival date object.");
+                            }
+
+                            if (flightDurations != null) {
+                                int scheduledBlockMinutes = flightDurations.optInt("scheduledBlockMinutes");
+
+                                if (scheduledBlockMinutes > 0) {
+                                    mFlightDurationMinutes = scheduledBlockMinutes;
+                                } else {
+                                    Log.d(TAG, "No scheduled block minutes (flight duration).");
+                                }
+                            }  else {
+                                Log.d(TAG, "No flight durations object");
+                            }
+
+                            // TODO: create polyline from mPortPoints, interpolate a bunch of intermediary points,
+                            // get envelope from polyline, query with envelope,
+
+                            cancelDialog();
+                            return;
+                        }
+                    } else {
+                        Log.d(TAG, "No flight statuses returned.");
+                    }
+                } else {
+                    Log.d(TAG, "Return json was null/empty.");
+                }
+
+                Log.w(TAG, "Could not get flight ID from status request.");
+                cancelDialog();
+                setupToast("No matching flight found!");
+            }
+
+            @Override
+            public void onError(JSONObject json, StatusLine status) {
+                Log.w(TAG, "Error getting flight status: " + status.getReasonPhrase());
+                setupToast("Error while looking up flight, please try again.");
+                cancelDialog();
+            }
+
+            @Override
+            public void onFailure(Throwable error) {
+                Log.w(TAG, "Error getting flight status: ", error);
+                setupToast("Error while looking up flight, please try again.");
+                cancelDialog();
+            }
+        });
 
         if (mSetupButton != null) {
             mSetupButton.getBackground().setAlpha(170);
@@ -190,6 +363,20 @@ public class MapActivity extends Activity {
                 }
             });
         }
+
+        cancelDialog();
+    }
+
+    private void cancelDialog() {
+        if (mProgress != null && mProgress.isShowing()) {
+            mProgress.cancel();
+        }
+    }
+
+    private void setupToast(String text) {
+        Toast toast = Toast.makeText(this, text, Toast.LENGTH_LONG);
+        toast.setGravity(Gravity.CENTER_VERTICAL, 0, 160);
+        toast.show();
     }
 
     /**
