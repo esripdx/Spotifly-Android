@@ -9,7 +9,7 @@ import com.esri.android.spotifly.R;
 import com.esri.android.spotifly.util.SpotiflyUtils;
 
 public class LaunchActivity extends Activity {
-    private static final int SPLASH_TIMEOUT = 1000;
+    private static final int SPLASH_TIMEOUT = 2000;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
