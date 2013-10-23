@@ -2,10 +2,13 @@ package com.esri.android.spotifly.ui;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import com.esri.android.map.Callout;
 import com.esri.android.map.FeatureLayer;
 import com.esri.android.map.GraphicsLayer;
@@ -30,20 +33,22 @@ import com.esri.core.tasks.gdb.GeodatabaseTask;
 import com.esri.core.tasks.gdb.SyncModel;
 
 public class MapActivity extends Activity {
-    public String TAG = "MapActivity";
+    private static final String TAG = "MapActivity";
+    private static final String TILE_SERVICE_URL = "http://services.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer";
+    private static final String FEATURE_SERVICE_URL = "http://services.arcgis.com/rOo16HdIMeOBI4Mb/arcgis/rest/services/Spotifly/FeatureServer/0";
 
-    MapView mMapView;
-    ArcGISFeatureLayer featureLayer;
-    ArcGISTiledMapServiceLayer tileLayer;
+    private MapView mMapView;
+    private Button mSetupButton;
+    private ArcGISFeatureLayer featureLayer;
+    private ArcGISTiledMapServiceLayer tileLayer;
 
-    GraphicsLayer graphicsLayer;
-    ProgressDialog progress;
+    private GraphicsLayer graphicsLayer;
+    private ProgressDialog progress;
     private int m_calloutStyle;
     private Callout m_callout;
     private ViewGroup calloutContent;
     private boolean m_isMapLoaded;
     private Graphic m_identifiedGraphic;
-    private String featureServiceURL;
     private GeodatabaseTask gdbTask;
     private String gdbFileName = "geodatabase.db";
 
@@ -53,124 +58,138 @@ public class MapActivity extends Activity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.main);
+        setContentView(R.layout.map_view);
 
         mMapView = (MapView) findViewById(R.id.map);
+        mSetupButton = (Button) findViewById(R.id.back_button);
+    }
 
-        mMapView.enableWrapAround(true);
+    @Override
+    public void onStart() {
+        super.onStart();
 
-        // Get the feature service URL from values->strings.xml
-        featureServiceURL = "http://services.arcgis.com/rOo16HdIMeOBI4Mb/arcgis/rest/services/Spotifly/FeatureServer/0";
-
-        // Add Tile layer to the MapView
-        tileLayer = new ArcGISTiledMapServiceLayer(this.getResources().getString(R.string.tileServiceURL));
-        mMapView.addLayer(tileLayer);
-        // Add Feature layer to the MapView
-        featureLayer = new ArcGISFeatureLayer(featureServiceURL, ArcGISFeatureLayer.MODE.ONDEMAND);
-        mMapView.addLayer(featureLayer);
-        // Add Graphics layer to the MapView
-        graphicsLayer = new GraphicsLayer();
-        mMapView.addLayer(graphicsLayer);
-
-        // Set the initial extent of the map
-        final Envelope initExtent =
-                new Envelope(-1557669.6939985836, -4115210.743119574, 9205833.473803047, 1.3524975004110876E7);
-        mMapView.setExtent(initExtent);
-
-        // Get the MapView's callout from xml->identify_calloutstyle.xml
-        m_calloutStyle = R.xml.identify_calloutstyle;
-        LayoutInflater inflater = getLayoutInflater();
-        m_callout = mMapView.getCallout();
-        // Get the layout for the Callout from
-        // layout->identify_callout_content.xml
-        calloutContent = (ViewGroup) inflater.inflate(R.layout.identify_callout_content, null);
-        m_callout.setContent(calloutContent);
-
-        mMapView.setOnStatusChangedListener(new OnStatusChangedListener() {
-
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public void onStatusChanged(Object source, STATUS status) {
-                // Check to see if map has successfully loaded
-                if ((source == mMapView) && (status == STATUS.INITIALIZED)) {
-                    // Set the flag to true
-                    m_isMapLoaded = true;
+        if (mSetupButton != null) {
+            mSetupButton.getBackground().setAlpha(170);
+            mSetupButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Intent intent = new Intent(MapActivity.this, SetupActivity.class);
+                    startActivity(intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT));
                 }
-            }
-        });
+            });
+        }
 
-        mMapView.setOnSingleTapListener(new OnSingleTapListener() {
+        if (mMapView != null) {
+            mMapView.enableWrapAround(true);
 
-            private static final long serialVersionUID = 1L;
+            // Add Tile layer to the MapView
+            tileLayer = new ArcGISTiledMapServiceLayer(TILE_SERVICE_URL);
+            mMapView.addLayer(tileLayer);
+            // Add Feature layer to the MapView
+            featureLayer = new ArcGISFeatureLayer(FEATURE_SERVICE_URL, ArcGISFeatureLayer.MODE.ONDEMAND);
+            mMapView.addLayer(featureLayer);
+            // Add Graphics layer to the MapView
+            graphicsLayer = new GraphicsLayer();
+            mMapView.addLayer(graphicsLayer);
 
-            @Override
-            public void onSingleTap(float x, float y) {
+            // Set the initial extent of the map
+            final Envelope initExtent =
+                    new Envelope(-1557669.6939985836, -4115210.743119574, 9205833.473803047, 1.3524975004110876E7);
+            mMapView.setExtent(initExtent);
 
-                if (m_isMapLoaded) {
-                    // If map is initialized and Single tap is registered on
-                    // screen
-                    // identify the location selected
-                    identifyLocation(x, y);
+            // Get the MapView's callout from xml->identify_calloutstyle.xml
+            m_calloutStyle = R.xml.identify_calloutstyle;
+            LayoutInflater inflater = getLayoutInflater();
+            m_callout = mMapView.getCallout();
+            // Get the layout for the Callout from
+            // layout->identify_callout_content.xml
+            calloutContent = (ViewGroup) inflater.inflate(R.layout.identify_callout_content, null);
+            m_callout.setContent(calloutContent);
+
+            mMapView.setOnStatusChangedListener(new OnStatusChangedListener() {
+                private static final long serialVersionUID = 1L;
+
+                @Override
+                public void onStatusChanged(Object source, STATUS status) {
+                    // Check to see if map has successfully loaded
+                    if ((source == mMapView) && (status == STATUS.INITIALIZED)) {
+                        // Set the flag to true
+                        m_isMapLoaded = true;
+                    }
                 }
-            }
-        });
+            });
 
-        gdbTask = new GeodatabaseTask(featureServiceURL, null, new CallbackListener<FeatureServiceInfo>() {
-            @Override
-            public void onError(Throwable e) {
-                Log.e(TAG, "Geodatabase Task Error", e);
-            }
+            mMapView.setOnSingleTapListener(new OnSingleTapListener() {
+                private static final long serialVersionUID = 1L;
 
-            @Override
-            public void onCallback(FeatureServiceInfo info) {
-                Log.d(TAG, "Geodatabase Task Callback!");
+                @Override
+                public void onSingleTap(float x, float y) {
 
-                Log.d(TAG, info.isSyncEnabled() ? "Sync enabled" : "Sync disabled");
-
-                if (info.isSyncEnabled()) {
-                    int[] layerIds = {0};
-                    GenerateGeodatabaseParameters params = new GenerateGeodatabaseParameters(
-                            layerIds, mMapView.getExtent(), mMapView.getSpatialReference(), true, SyncModel.LAYER,
-                            mMapView.getSpatialReference());
-
-                    gdbTask.submitGenerateGeodatabaseJobAndDownload(params, gdbFileName, new GeodatabaseStatusCallback() {
-                        @Override
-                        public void statusUpdated(GeodatabaseStatusInfo status) {
-                            Log.d(TAG, status.getStatus().toString());
-                        }
-                    }, new CallbackListener<Geodatabase>() {
-                        @Override
-                        public void onCallback(Geodatabase obj) {
-                            // update UI
-                            Log.d(TAG, "Geodatabase downloaded!");
-                            Log.i(TAG, "geodatabase is: " + obj.getPath());
-
-                            // Remove all the feature layers from map and add a feature
-                            // Layer from the downloaded geodatabase
-                            for (Layer layer : mMapView.getLayers()) {
-                                if (layer instanceof ArcGISFeatureLayer) {
-                                    mMapView.removeLayer(layer);
-                                }
-                            }
-                            for (GdbFeatureTable gdbFeatureTable : obj.getGdbTables()) {
-                                if (gdbFeatureTable.hasGeometry()) {
-                                    mMapView.addLayer(new FeatureLayer(gdbFeatureTable));
-                                }
-                            }
-
-                        }
-
-                        @Override
-                        public void onError(Throwable e) {
-                            Log.e(TAG, "", e);
-                        }
-
-                    });
-                    Log.e(TAG, "Submitting gdb job...");
+                    if (m_isMapLoaded) {
+                        // If map is initialized and Single tap is registered on
+                        // screen
+                        // identify the location selected
+                        identifyLocation(x, y);
+                    }
                 }
-            }
-        });
+            });
+
+            gdbTask = new GeodatabaseTask(FEATURE_SERVICE_URL, null, new CallbackListener<FeatureServiceInfo>() {
+                @Override
+                public void onError(Throwable e) {
+                    Log.e(TAG, "Geodatabase Task Error", e);
+                }
+
+                @Override
+                public void onCallback(FeatureServiceInfo info) {
+                    Log.d(TAG, "Geodatabase Task Callback!");
+
+                    Log.d(TAG, info.isSyncEnabled() ? "Sync enabled" : "Sync disabled");
+
+                    if (info.isSyncEnabled()) {
+                        int[] layerIds = {0};
+                        GenerateGeodatabaseParameters params = new GenerateGeodatabaseParameters(
+                                layerIds, mMapView.getExtent(), mMapView.getSpatialReference(), true, SyncModel.LAYER,
+                                mMapView.getSpatialReference());
+
+                        gdbTask.submitGenerateGeodatabaseJobAndDownload(params, gdbFileName, new GeodatabaseStatusCallback() {
+                                    @Override
+                                    public void statusUpdated(GeodatabaseStatusInfo status) {
+                                        Log.d(TAG, status.getStatus().toString());
+                                    }
+                                }, new CallbackListener<Geodatabase>() {
+                                    @Override
+                                    public void onCallback(Geodatabase obj) {
+                                        // update UI
+                                        Log.d(TAG, "Geodatabase downloaded!");
+                                        Log.i(TAG, "geodatabase is: " + obj.getPath());
+
+                                        // Remove all the feature layers from map and add a feature
+                                        // Layer from the downloaded geodatabase
+                                        for (Layer layer : mMapView.getLayers()) {
+                                            if (layer instanceof ArcGISFeatureLayer) {
+                                                mMapView.removeLayer(layer);
+                                            }
+                                        }
+                                        for (GdbFeatureTable gdbFeatureTable : obj.getGdbTables()) {
+                                            if (gdbFeatureTable.hasGeometry()) {
+                                                mMapView.addLayer(new FeatureLayer(gdbFeatureTable));
+                                            }
+                                        }
+
+                                    }
+
+                                    @Override
+                                    public void onError(Throwable e) {
+                                        Log.e(TAG, "", e);
+                                    }
+
+                                });
+                        Log.e(TAG, "Submitting gdb job...");
+                    }
+                }
+            });
+        }
     }
 
     /**
@@ -180,7 +199,6 @@ public class MapActivity extends Activity {
      * @param y y co-ordinate of point
      */
     private void identifyLocation(float x, float y) {
-
         // Hide the callout, if the callout from previous tap is still showing on map
         if (m_callout.isShowing()) {
             m_callout.hide();
@@ -208,7 +226,6 @@ public class MapActivity extends Activity {
         Point mapPoint = mMapView.toMapPoint(x, y);
 
         if (mapPoint != null) {
-
             for (Layer layer : mMapView.getLayers()) {
                 if (layer != null && layer instanceof ArcGISFeatureLayer) {
                     ArcGISFeatureLayer fLayer = (ArcGISFeatureLayer) layer;
@@ -229,7 +246,6 @@ public class MapActivity extends Activity {
      * @return Graphic at location x,y
      */
     private Graphic GetFeature(ArcGISFeatureLayer fLayer, float x, float y) {
-
         // Get the graphics near the Point.
         int[] ids = fLayer.getGraphicIDs(x, y, 10, 1);
         if (ids == null || ids.length == 0) {

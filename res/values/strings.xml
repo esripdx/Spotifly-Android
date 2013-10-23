@@ -4,6 +4,4 @@
     <string name="flight_stats_app_id">52f9d24d</string>
     <string name="flight_stats_app_key">26f05dd250d70da50a0742a3f3f86cd1</string>
     <string name="spinTitle">Query Customer Data:</string>
-    <string name="tileServiceURL">http://services.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer</string>
-    <string name="featureServiceURL"></string>
 </resources>

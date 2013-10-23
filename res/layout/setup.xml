@@ -6,38 +6,56 @@
               android:paddingLeft="25dp"
               android:paddingRight="25dp">
 
-    <TextView
-            style="@style/h1_main"
-            android:text="Spotifly"/>
+    <LinearLayout
+            android:layout_height="wrap_content"
+            android:layout_width="match_parent"
+            android:orientation="vertical"
+            android:layout_weight="1">
+        <TextView
+                style="@style/h2_main"
+                android:textSize="28sp"
+                android:text="Flight #"/>
+        <EditText
+                style="@style/input_field"
+                android:hint="Enter flight number..."
+                android:id="@+id/flight_number"/>
+    </LinearLayout>
 
-    <TextView
-            style="@style/h2_main"
-            android:text="Flight #"/>
+    <LinearLayout
+            android:layout_height="wrap_content"
+            android:layout_width="match_parent"
+            android:orientation="vertical"
+            android:layout_weight="1">
+        <TextView
+                style="@style/h2_main"
+                android:textSize="28sp"
+                android:text="Date"/>
+        <TextView
+                style="@style/input_field"
+                android:id="@+id/flight_date"
+                android:padding="10dp"
+                android:textSize="18sp"
+                android:hint="Enter a date..."
+                android:background="@color/white"/>
+    </LinearLayout>
 
-    <EditText
-            style="@style/input_field"
-            android:hint="Enter flight number..."
-            android:id="@+id/flight_number"/>
-    <TextView
-            style="@style/h2_main"
-            android:text="Date"/>
-    <TextView
-            style="@style/input_field"
-            android:id="@+id/flight_date"
-            android:padding="10dp"
-            android:textSize="18sp"
-            android:hint="Enter a date..."
-            android:background="@color/white"/>
-
-    <TextView
-            style="@style/h2_main"
-            android:text="Airline"/>
-    <Spinner
-            android:id="@+id/airline_carrier"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content" />
+    <LinearLayout
+            android:layout_height="wrap_content"
+            android:layout_width="match_parent"
+            android:orientation="vertical"
+            android:layout_weight="1">
+        <TextView
+                style="@style/h2_main"
+                android:textSize="28sp"
+                android:text="Airline"/>
+        <Spinner
+                android:id="@+id/airline_carrier"
+                android:layout_width="wrap_content"
+                android:layout_gravity="center"
+                android:layout_height="wrap_content"/>
+    </LinearLayout>
     <Button
-            style="@style/button_style"
+            style="@style/go_button_style"
             android:text="Go!"
-            android:id="@+id/go_button" android:layout_gravity="center"/>
+            android:id="@+id/go_button"/>
 </LinearLayout>

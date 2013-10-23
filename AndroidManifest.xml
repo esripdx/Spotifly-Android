@@ -26,6 +26,7 @@
         </activity>
 
         <activity android:name=".ui.MapActivity"
+                  android:theme="@android:style/Theme.Light.NoTitleBar.Fullscreen"
                   android:screenOrientation="portrait"/>
         <activity android:name=".ui.SetupActivity"
                   android:screenOrientation="portrait"/>

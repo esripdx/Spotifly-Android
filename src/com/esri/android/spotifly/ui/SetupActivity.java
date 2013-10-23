@@ -34,7 +34,6 @@ public class SetupActivity extends FragmentActivity {
     private static final String TAG = "SetupActivity";
     private static final String FLIGHT_STATUS_URL = "https://api.flightstats.com/flex/flightstatus/rest/v2/json/flight/status/";
 
-    private Button mGoButton;
     private EditText mFlightNumber;
     private Spinner mCarrierName;
     private TextView mDatePicker;
@@ -54,7 +53,7 @@ public class SetupActivity extends FragmentActivity {
     @Override
     public void onStart() {
         super.onStart();
-        mGoButton = (Button) findViewById(R.id.go_button);
+        Button goButton = (Button) findViewById(R.id.go_button);
         mFlightNumber = (EditText) findViewById(R.id.flight_number);
         mCarrierName = (Spinner) findViewById(R.id.airline_carrier);
         mDatePicker = (TextView) findViewById(R.id.flight_date);
@@ -108,8 +107,8 @@ public class SetupActivity extends FragmentActivity {
             Log.w(TAG, "date picker text field was null?");
         }
 
-        if (mGoButton != null) {
-            mGoButton.setOnClickListener(new View.OnClickListener() {
+        if (goButton != null) {
+            goButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     String airlineCode = null;
@@ -185,7 +184,7 @@ public class SetupActivity extends FragmentActivity {
                                             if (flightId != 0) {
                                                 SpotiflyUtils.setFlightId(SetupActivity.this, flightId);
                                                 Intent intent = new Intent(SetupActivity.this, MapActivity.class);
-                                                startActivity(intent);
+                                                startActivity(intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
 
                                                 cancelDialog();
                                                 return;
@@ -238,8 +237,7 @@ public class SetupActivity extends FragmentActivity {
         toast.show();
     }
 
-    private class DatePickerFragment extends DialogFragment
-            implements DatePickerDialog.OnDateSetListener {
+    private class DatePickerFragment extends DialogFragment implements DatePickerDialog.OnDateSetListener {
         @Override
         public Dialog onCreateDialog(Bundle savedInstanceState) {
             int year;
