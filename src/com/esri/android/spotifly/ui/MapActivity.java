@@ -3,6 +3,7 @@ package com.esri.android.spotifly.ui;
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
@@ -29,9 +30,14 @@ import com.esri.core.ags.FeatureServiceInfo;
 import com.esri.core.gdb.GdbFeatureTable;
 import com.esri.core.gdb.Geodatabase;
 import com.esri.core.geometry.Envelope;
+import com.esri.core.geometry.GeometryEngine;
 import com.esri.core.geometry.Point;
+import com.esri.core.geometry.Polyline;
+import com.esri.core.geometry.SpatialReference;
 import com.esri.core.map.CallbackListener;
 import com.esri.core.map.Graphic;
+import com.esri.core.symbol.PictureMarkerSymbol;
+import com.esri.core.symbol.SimpleLineSymbol;
 import com.esri.core.tasks.gdb.GenerateGeodatabaseParameters;
 import com.esri.core.tasks.gdb.GeodatabaseStatusCallback;
 import com.esri.core.tasks.gdb.GeodatabaseStatusInfo;
@@ -50,7 +56,11 @@ public class MapActivity extends Activity {
     private static final String TAG = "MapActivity";
     private static final String TILE_SERVICE_URL = "http://services.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer";
     private static final String FEATURE_SERVICE_URL = "http://services.arcgis.com/rOo16HdIMeOBI4Mb/arcgis/rest/services/Spotifly/FeatureServer/0";
+    private static final String FEATURE_SERVICE_SYNC_URL = "http://services.arcgis.com/rOo16HdIMeOBI4Mb/arcgis/rest/services/Spotifly/FeatureServer/0";
     private static final String FLIGHT_STATUS_URL = "https://api.flightstats.com/flex/flightstatus/rest/v2/json/flight/status/";
+
+    private static final SpatialReference WGS84 = SpatialReference.create(SpatialReference.WKID_WGS84);
+    private static final SpatialReference WEB_MERCATOR = SpatialReference.create(SpatialReference.WKID_WGS84_WEB_MERCATOR);
 
     private MapView mMapView;
     private Button mSetupButton;
@@ -307,7 +317,7 @@ public class MapActivity extends Activity {
                 }
             });
 
-            gdbTask = new GeodatabaseTask(FEATURE_SERVICE_URL, null, new CallbackListener<FeatureServiceInfo>() {
+            gdbTask = new GeodatabaseTask(FEATURE_SERVICE_SYNC_URL, null, new CallbackListener<FeatureServiceInfo>() {
                 @Override
                 public void onError(Throwable e) {
                     Log.e(TAG, "Geodatabase Task Error", e);
@@ -325,7 +335,8 @@ public class MapActivity extends Activity {
                                 layerIds, mMapView.getExtent(), mMapView.getSpatialReference(), true, SyncModel.LAYER,
                                 mMapView.getSpatialReference());
 
-                        gdbTask.submitGenerateGeodatabaseJobAndDownload(params, gdbFileName, new GeodatabaseStatusCallback() {
+                        gdbTask.submitGenerateGeodatabaseJobAndDownload(params, gdbFileName,
+                                new GeodatabaseStatusCallback() {
                                     @Override
                                     public void statusUpdated(GeodatabaseStatusInfo status) {
                                         Log.d(TAG, status.getStatus().toString());
@@ -349,7 +360,6 @@ public class MapActivity extends Activity {
                                                 mMapView.addLayer(new FeatureLayer(gdbFeatureTable));
                                             }
                                         }
-
                                     }
 
                                     @Override
@@ -378,6 +388,49 @@ public class MapActivity extends Activity {
         toast.setGravity(Gravity.CENTER_VERTICAL, 0, 160);
         toast.show();
     }
+
+
+    public ArrayList<Point> getCoordinates(int count) {
+        Point start = mPortPoints.get(0);
+        Point end = mPortPoints.get(mPortPoints.size());
+
+        ArrayList<Point> points = new ArrayList<Point>();
+
+        double dx = end.getX() - start.getX();
+        double dy = end.getY() - start.getY();
+
+        for (int i = 0; i < count; i++) {
+            double x = (start.getX() + (dx / count) * i);
+            double y = (start.getY() + (dy / count) * i);
+            points.add(new Point(x, y));
+        }
+
+        return points;
+    }
+
+    public void drawFlightPath() {
+        SimpleLineSymbol sls = new SimpleLineSymbol(Color.DKGRAY, 1f, SimpleLineSymbol.STYLE.DASH);
+        Polyline pl = new Polyline();
+        pl.startPath(-122.592901, 45.588995);
+        pl.lineTo(-117.597651, 34.060681);
+
+        Polyline plProj = (Polyline) GeometryEngine.project(pl, WGS84, WEB_MERCATOR);
+        Graphic g = new Graphic(plProj, sls);
+        graphicsLayer.addGraphic(g);
+    }
+
+    public void animateFlightPath() {
+        PictureMarkerSymbol pms = new PictureMarkerSymbol(getResources().getDrawable(R.drawable.airplane));
+        Point p = createWgs84Point(34.060681, -117.597651);
+        Graphic g = new Graphic(p, pms);
+        graphicsLayer.addGraphic(g);
+    }
+
+    public Point createWgs84Point(double lat, double lng) {
+        Point p = new Point(lng, lat);
+        return (Point) GeometryEngine.project(p, WGS84, WEB_MERCATOR);
+    }
+
 
     /**
      * Takes in the screen location of the point to identify the feature on map.
@@ -449,7 +502,7 @@ public class MapActivity extends Activity {
      * @param mapPoint
      */
     private void ShowCallout(Callout calloutView, Graphic graphic, Point mapPoint) {
-          // Fields: name, type, wiki_link
+        // Fields: name, type, wiki_link
 
 //        // Get the values of attributes for the Graphic
 //        String cityName = (String) graphic.getAttributeValue("NAME");
