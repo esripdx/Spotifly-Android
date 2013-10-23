@@ -5,6 +5,7 @@ import android.app.ProgressDialog;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Handler;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.Gravity;
@@ -218,8 +219,10 @@ public class MapActivity extends Activity {
                                 Log.d(TAG, "No flight durations object");
                             }
 
-                            // TODO: create polyline from mPortPoints, interpolate a bunch of intermediary points,
-                            // get envelope from polyline, query with envelope,
+                            drawFlightPath();
+                            animateFlightPath();
+
+                            //TODO: zoom to extent
 
                             cancelDialog();
                             return;
@@ -279,6 +282,8 @@ public class MapActivity extends Activity {
             final Envelope initExtent =
                     new Envelope(-1557669.6939985836, -4115210.743119574, 9205833.473803047, 1.3524975004110876E7);
             mMapView.setExtent(initExtent);
+
+            mMapView.centerAndZoom(39.707186656826565, -121.11328124999999, 8);
 
             // Get the MapView's callout from xml->identify_calloutstyle.xml
             m_calloutStyle = R.xml.identify_calloutstyle;
@@ -391,17 +396,17 @@ public class MapActivity extends Activity {
 
 
     public ArrayList<Point> getCoordinates(int count) {
-        Point start = mPortPoints.get(0);
-        Point end = mPortPoints.get(mPortPoints.size());
+        Point end = new Point(-122.592901, 45.588995); // mPortPoints.get(0);
+        Point start = new Point(-117.597651, 34.060681); //mPortPoints.get(mPortPoints.size() - 1);
 
-        ArrayList<Point> points = new ArrayList<Point>();
+        ArrayList <Point> points = new ArrayList<Point>();
 
         double dx = end.getX() - start.getX();
         double dy = end.getY() - start.getY();
 
         for (int i = 0; i < count; i++) {
-            double x = (start.getX() + (dx / count) * i);
-            double y = (start.getY() + (dy / count) * i);
+            double x = (start.getX() + (dx / (float) count) * i);
+            double y = (start.getY() + (dy / (float) count) * i);
             points.add(new Point(x, y));
         }
 
@@ -419,11 +424,39 @@ public class MapActivity extends Activity {
         graphicsLayer.addGraphic(g);
     }
 
+
+    private int mPlaneGraphic = -Integer.MAX_VALUE;
     public void animateFlightPath() {
-        PictureMarkerSymbol pms = new PictureMarkerSymbol(getResources().getDrawable(R.drawable.airplane));
-        Point p = createWgs84Point(34.060681, -117.597651);
-        Graphic g = new Graphic(p, pms);
-        graphicsLayer.addGraphic(g);
+        final PictureMarkerSymbol pms = new PictureMarkerSymbol(getResources().getDrawable(R.drawable.airplane));
+        final Handler handler = new Handler();
+        final ArrayList<Point> points = getCoordinates(100);
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < points.size(); i++) {
+                    Point p = (Point) GeometryEngine.project(points.get(i), WGS84, WEB_MERCATOR);
+                    final Graphic g = new Graphic(p, pms);
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (mPlaneGraphic != -Integer.MAX_VALUE) {
+                                graphicsLayer.removeGraphic(mPlaneGraphic);
+                            }
+                            mPlaneGraphic = graphicsLayer.addGraphic(g);
+                        }
+                    });
+
+                    Log.d(TAG, "derp!");
+
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        // Pass
+                    }
+                }
+            }
+        }).start();
     }
 
     public Point createWgs84Point(double lat, double lng) {
